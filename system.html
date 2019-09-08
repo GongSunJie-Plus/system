@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<style>
+			*{
+				margin: 0;
+				padding: 0;
+			}
+			body{
+				font-size: 0;
+				width: 100%;
+				height: 100%;
+				background-color: black;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="myCanvas"></canvas>
+		<script type="text/javascript">
+			var canvas = document.querySelector("#myCanvas");
+		var ctx = canvas.getContext("2d");
+		resize();
+		window.onresize = resize;
+
+		function resize() {
+			canvas.width = document.documentElement.clientWidth;
+			canvas.height = document.documentElement.clientHeight;
+		}
+
+		var RAF = (function () {
+			return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function (callback) {
+				window.setTimeout(callback,1000/60);
+			};
+		})();
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		var m_sun = 11; // 太阳质量                        
+		var sign = 0;
+		var planet = [];
+		var x1 = 75;
+		var x2 = 25;
+		var y1 = 50;
+		var y2 = 105;
+		var n = 0;// 控制轨迹记录上限
+//		setTimeout (function () {
+//			Draw();
+//		},100);
+		window.onload = Draw();
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		function Draw(){
+			ctx.clearRect(0,0,canvas.width,canvas.height);
+			ctx.fillStyle = "#FF0000";
+			ctx.beginPath();// 新建路径，不在每次画图形新建路径就会颜色重复
+			ctx.arc(canvas.width*0.5,canvas.height*0.5, 25, 0, Math.PI*2, true);
+			ctx.fill();
+			if(sign == 0){ 
+				//var planet = []; 这里创建数组在下次绘图时就是重新定义了，数据全无
+				for(var i = 0 ;i < 100 ;i++){ // 行星数量
+					var judge = Math.random();
+					if(judge < 0.25){
+						var x = Math.floor(Math.random()*((canvas.width*0.5-30)-20+1)+20) //Math.floor(Math.random()*(max-min+1)+min) 生成指定范围内的随机数
+						var y = Math.floor(Math.random()*((canvas.height-20)-20+1)+20);
+					}
+					if(judge < 0.5 && judge >=0.25){
+						var x = Math.floor(Math.random()*((canvas.width-20)-(canvas.width/2 +20)+1)+(canvas.width/2 + 20));
+						var y = Math.floor(Math.random()*((canvas.height-20)-20+1)+20);
+					}
+					if(judge < 0.75 && judge >=0.5){
+						var x = Math.floor(Math.random()*((canvas.width-20)-20+1)+20);
+						var y = Math.floor(Math.random()*((canvas.height-20)-(canvas.height/2 +20)+1)+(canvas.height/2 +20));
+					}
+					if(judge >=0.75){
+						var x = Math.floor(Math.random()*((canvas.width-20)-20+1)+20);
+						var y = Math.floor(Math.random()*((canvas.height/2 -20)-20+1)+20);
+					}
+					var r = Math.random()*(3-1+0.5)+0.5;
+					var col = 'rgb(200,' + Math.floor(Math.random()*255) + ',' + Math.floor(Math.random()*255) + ')';
+					var ix = Math.random()*2-1;// 初始速度向量
+					var iy = Math.random()*2-1;
+					var n_x = [];// 用来记录过去坐标,队列
+					var n_y = [];
+					n_x.unshift(x);
+					n_y.unshift(y);
+					planet[i]={
+						x: x,
+						y: y,
+						r: r,
+						col: col,
+						ix:ix,
+						iy:iy,
+						n_x:n_x,
+						n_y:n_y,
+					};
+//					planet[i].n_x.unshift(x);	
+//					planet[i].n_y.unshift(y);
+//					console.log(planet[i].n_x);
+//					console.log(planet[i].n_y);
+					ctx.font = "13px serif";
+  					ctx.fillText(i, planet[i].x-2*planet[i].r,planet[i].y-2*planet[i].r);
+					ctx.fillStyle = col;
+					ctx.beginPath();
+					ctx.arc(x,y,r,0, Math.PI*2, true);
+					ctx.fill();
+				}
+//				console.log(planet[0].n_x);
+//				console.log(planet[1].n_x);
+				sign = 1;
+				//console.log(planet[0]);
+			}else{
+
+				for(var i =0 ;i < 100 ;i++){ // i为中心点
+					var l_sun = 25 + planet[i].r + Math.sqrt(Math.pow(planet[i].x-canvas.width*0.5,2)+Math.pow(planet[i].y-canvas.height*0.5,2));//和sun的距离
+					var a_sun = Math.PI*4*Math.pow(planet[i].r,3)*m_sun/Math.pow(l_sun,2);  //sun加速度,可以调整太阳引力参数
+					planet[i].ix += (canvas.width*0.5-planet[i].x)*a_sun/l_sun;
+					planet[i].iy += (canvas.height*0.5-planet[i].y)*a_sun/l_sun;
+//					for(var j = 0 ;j < 100 ;j++){ // j引力指向点
+//						
+//					}
+					planet[i].x = planet[i].x + planet[i].ix;
+					planet[i].y = planet[i].y + planet[i].iy;
+					if(planet[i].n_x.length < 60 && n%10==0){ //记录轨迹次数 
+						planet[i].n_x.unshift(planet[i].x);
+						planet[i].n_y.unshift(planet[i].y);
+					}else{
+						planet[i].n_x.pop();
+						planet[i].n_y.pop();
+						//if(planet[i].x != planet[i].n_x[0]){
+							planet[i].n_x.unshift(planet[i].x);
+							planet[i].n_y.unshift(planet[i].y);
+						//}
+					}
+					ctx.fillStyle = ctx.strokeStyle = "white";
+					ctx.lineWidth = 0.2;
+					ctx.beginPath();
+					var le = planet[i].n_x.length-1;
+					ctx.moveTo(planet[i].n_x[1], planet[i].n_y[1]);
+					for(var j = 2 ; j <= le ; j+=3){
+						ctx.lineTo(planet[i].n_x[j], planet[i].n_y[j]);
+						ctx.stroke();
+					}
+//					if(n < 120)
+//					console.log(le);
+//					for(var j = 1 ; j <= le ; j++){
+//						ctx.arc(planet[i].n_x[j] ,planet[i].n_y[j] ,0.05,0, Math.PI*2, true);
+//						ctx.fill();
+//					}
+					//for(var j = 1 ; j < 5 ; j++){
+//						ctx.arc(planet[i].n_x[30],planet[i].n_y[30],2,0, Math.PI*2, true);
+//						ctx.fill();
+					//}
+					ctx.fillStyle = planet[i].col;
+					ctx.font = "13px serif";
+  					ctx.fillText(i, planet[i].x-2*planet[i].r,planet[i].y-2*planet[i].r);	
+					ctx.beginPath();
+					ctx.arc(planet[i].x ,planet[i].y ,planet[i].r ,0, Math.PI*2, true);
+					ctx.fill();
+				}
+			}
+			
+//			ctx.fillStyle = "white";
+//			ctx.beginPath();
+//			ctx.arc(canvas.width*0.25,canvas.height*0.25, 20, 0, Math.PI*2, true);
+//			ctx.fill();
+			//console.log(n);
+			n++; // 行星轨迹次数
+		    RAF(Draw);
+		}
+		</script>
+	</body>
+</html>
+
